@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Flying Enemies Game</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: skyblue;
+            touch-action: manipulation;
+        }
+        canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+        }
+        .controls {
+            position: fixed;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .movement-buttons {
+            display: flex;
+            justify-content: center;
+        }
+        .button {
+            width: 60px;
+            height: 60px;
+            margin: 5px;
+            background-color: gray;
+            color: white;
+            font-size: 24px;
+            border: none;
+            border-radius: 10px;
+            text-align: center;
+            touch-action: manipulation;
+        }
+        .reset-button {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            width: 80px;
+            height: 40px;
+            background-color: red;
+            color: white;
+            font-size: 18px;
+            border: none;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+    <div class="controls">
+        <div class="movement-buttons">
+            <button class="button" id="left">⬅</button>
+            <button class="button" id="right">➡</button>
+        </div>
+        <div class="movement-buttons">
+            <button class="button" id="up">⬆</button>
+            <button class="button" id="down">⬇</button>
+        </div>
+        <button class="button" id="fire">🔥</button>
+    </div>
+    <button class="reset-button" id="reset">Reset</button>
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        let player = {
+            x: canvas.width / 2,
+            y: canvas.height - 100,
+            width: 50,
+            height: 50,
+            color: "red",
+            dx: 0,
+            dy: 0,
+            speed: 5
+        };
+
+        let playerImage = new Image();
+        playerImage.src = "https://i.imgur.com/OzPomu1.png";
+
+        let bullets = [];
+        let enemies = [];
+        const enemyCount = 20;
+        let enemySpeed = 0.5;
+
+        function resetGame() {
+            player.x = canvas.width / 2;
+            player.y = canvas.height - 100;
+            bullets = [];
+            enemySpeed = 1;
+            spawnEnemies();
+        }
+
+        function spawnEnemies() {
+            enemies = [];
+            for (let i = 0; i < enemyCount; i++) {
+                let enemy = {
+                    x: Math.random() * (canvas.width - 50),
+                    y: -Math.random() * canvas.height,
+                    width: 50,
+                    height: 50,
+                    speed: enemySpeed
+                };
+                enemies.push(enemy);
+            }
+        }
+
+        function updateEnemies() {
+            for (let enemy of enemies) {
+                enemy.y += enemy.speed;
+                if (enemy.y > canvas.height) {
+                    enemy.y = -50;
+                    enemy.x = Math.random() * (canvas.width - 50);
+                    enemy.speed += 0.2;
+                }
+                if (
+                    player.x < enemy.x + enemy.width &&
+                    player.x + player.width > enemy.x &&
+                    player.y < enemy.y + enemy.height &&
+                    player.y + player.height > enemy.y
+                ) {
+                    alert("Game Over");
+                    resetGame();
+                }
+            }
+        }
+
+        function drawEnemies() {
+            ctx.fillStyle = "orange";
+            for (let enemy of enemies) {
+                ctx.fillRect(enemy.x, enemy.y, enemy.width, enemy.height);
+            }
+        }
+
+        function drawPlayer() {
+            ctx.fillStyle = player.color;
+            ctx.fillRect(player.x, player.y, player.width, player.height);
+        }
+
+        function update() {
+            player.x += player.dx;
+            player.y += player.dy;
+            
+            if (player.x < 0) player.x = 0;
+            if (player.x + player.width > canvas.width) player.x = canvas.width - player.width;
+            if (player.y < 0) player.y = 0;
+            if (player.y + player.height > canvas.height) player.y = canvas.height - player.height;
+            
+            updateEnemies();
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawPlayer();
+            drawEnemies();
+            requestAnimationFrame(update);
+        }
+
+        document.getElementById("left").addEventListener("touchstart", () => player.dx = -player.speed);
+        document.getElementById("right").addEventListener("touchstart", () => player.dx = player.speed);
+        document.getElementById("up").addEventListener("touchstart", () => player.dy = -player.speed);
+        document.getElementById("down").addEventListener("touchstart", () => player.dy = player.speed);
+
+        document.getElementById("left").addEventListener("touchend", () => player.dx = 0);
+        document.getElementById("right").addEventListener("touchend", () => player.dx = 0);
+        document.getElementById("up").addEventListener("touchend", () => player.dy = 0);
+        document.getElementById("down").addEventListener("touchend", () => player.dy = 0);
+        
+        document.getElementById("reset").addEventListener("click", resetGame);
+
+        spawnEnemies();
+        update();
+    </script>
+</body>
+</html>
