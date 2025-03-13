@@ -86,98 +86,117 @@
             speed: 5
         };
 
-        let playerImage = new Image();
-        playerImage.src = "https://i.imgur.com/OzPomu1.png";
-
         let bullets = [];
         let enemies = [];
         const enemyCount = 20;
-        let enemySpeed = 0.5;
+        const enemySpeed = 1;
+        let gameOver = false;
+
+        for (let i = 0; i < enemyCount; i++) {
+            enemies.push({
+                x: Math.random() * canvas.width,
+                y: Math.random() * -canvas.height,
+                width: 40,
+                height: 40,
+                color: "orange",
+                speed: enemySpeed
+            });
+        }
+
+        function movePlayer(direction, isMoving) {
+            if (gameOver) return;
+            const speed = isMoving ? player.speed : 0;
+            if (direction === 'left') player.dx = -speed;
+            if (direction === 'right') player.dx = speed;
+            if (direction === 'up') player.dy = -speed;
+            if (direction === 'down') player.dy = speed;
+        }
+
+        function shoot() {
+            if (gameOver) return;
+            bullets.push({ x: player.x + 20, y: player.y, width: 5, height: 10, color: "yellow", dy: -5 });
+        }
 
         function resetGame() {
+            gameOver = false;
             player.x = canvas.width / 2;
             player.y = canvas.height - 100;
             bullets = [];
-            enemySpeed = 1;
-            spawnEnemies();
+            enemies.forEach(enemy => {
+                enemy.y = Math.random() * -canvas.height;
+            });
         }
 
-        function spawnEnemies() {
-            enemies = [];
-            for (let i = 0; i < enemyCount; i++) {
-                let enemy = {
-                    x: Math.random() * (canvas.width - 50),
-                    y: -Math.random() * canvas.height,
-                    width: 50,
-                    height: 50,
-                    speed: enemySpeed
-                };
-                enemies.push(enemy);
-            }
+        function checkCollision(rect1, rect2) {
+            return (
+                rect1.x < rect2.x + rect2.width &&
+                rect1.x + rect1.width > rect2.x &&
+                rect1.y < rect2.y + rect2.height &&
+                rect1.y + rect1.height > rect2.y
+            );
         }
 
-        function updateEnemies() {
-            for (let enemy of enemies) {
-                enemy.y += enemy.speed;
-                if (enemy.y > canvas.height) {
-                    enemy.y = -50;
-                    enemy.x = Math.random() * (canvas.width - 50);
-                    enemy.speed += 0.2;
-                }
-                if (
-                    player.x < enemy.x + enemy.width &&
-                    player.x + player.width > enemy.x &&
-                    player.y < enemy.y + enemy.height &&
-                    player.y + player.height > enemy.y
-                ) {
-                    alert("Game Over");
-                    resetGame();
-                }
-            }
-        }
+        function updateGame() {
+            if (gameOver) return;
 
-        function drawEnemies() {
-            ctx.fillStyle = "orange";
-            for (let enemy of enemies) {
-                ctx.fillRect(enemy.x, enemy.y, enemy.width, enemy.height);
-            }
-        }
-
-        function drawPlayer() {
-            ctx.fillStyle = player.color;
-            ctx.fillRect(player.x, player.y, player.width, player.height);
-        }
-
-        function update() {
             player.x += player.dx;
             player.y += player.dy;
-            
-            if (player.x < 0) player.x = 0;
-            if (player.x + player.width > canvas.width) player.x = canvas.width - player.width;
-            if (player.y < 0) player.y = 0;
-            if (player.y + player.height > canvas.height) player.y = canvas.height - player.height;
-            
-            updateEnemies();
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            drawPlayer();
-            drawEnemies();
-            requestAnimationFrame(update);
+
+            bullets.forEach(bullet => {
+                bullet.y += bullet.dy;
+            });
+
+            enemies.forEach(enemy => {
+                enemy.y += enemy.speed;
+                if (enemy.y > canvas.height) {
+                    enemy.y = Math.random() * -canvas.height;
+                    enemy.x = Math.random() * canvas.width;
+                }
+                
+                if (checkCollision(player, enemy)) {
+                    gameOver = true;
+                    alert("Game Over");
+                }
+            });
+
+            bullets = bullets.filter(bullet => bullet.y > 0);
         }
 
-        document.getElementById("left").addEventListener("touchstart", () => player.dx = -player.speed);
-        document.getElementById("right").addEventListener("touchstart", () => player.dx = player.speed);
-        document.getElementById("up").addEventListener("touchstart", () => player.dy = -player.speed);
-        document.getElementById("down").addEventListener("touchstart", () => player.dy = player.speed);
+        function drawGame() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = player.color;
+            ctx.fillRect(player.x, player.y, player.width, player.height);
 
-        document.getElementById("left").addEventListener("touchend", () => player.dx = 0);
-        document.getElementById("right").addEventListener("touchend", () => player.dx = 0);
-        document.getElementById("up").addEventListener("touchend", () => player.dy = 0);
-        document.getElementById("down").addEventListener("touchend", () => player.dy = 0);
-        
+            bullets.forEach(bullet => {
+                ctx.fillStyle = bullet.color;
+                ctx.fillRect(bullet.x, bullet.y, bullet.width, bullet.height);
+            });
+
+            enemies.forEach(enemy => {
+                ctx.fillStyle = enemy.color;
+                ctx.fillRect(enemy.x, enemy.y, enemy.width, enemy.height);
+            });
+        }
+
+        function gameLoop() {
+            updateGame();
+            drawGame();
+            requestAnimationFrame(gameLoop);
+        }
+
+        document.getElementById("left").addEventListener("touchstart", () => movePlayer('left', true));
+        document.getElementById("left").addEventListener("touchend", () => movePlayer('left', false));
+        document.getElementById("right").addEventListener("touchstart", () => movePlayer('right', true));
+        document.getElementById("right").addEventListener("touchend", () => movePlayer('right', false));
+        document.getElementById("up").addEventListener("touchstart", () => movePlayer('up', true));
+        document.getElementById("up").addEventListener("touchend", () => movePlayer('up', false));
+        document.getElementById("down").addEventListener("touchstart", () => movePlayer('down', true));
+        document.getElementById("down").addEventListener("touchend", () => movePlayer('down', false));
+
+        document.getElementById("fire").addEventListener("touchstart", shoot);
         document.getElementById("reset").addEventListener("click", resetGame);
-
-        spawnEnemies();
-        update();
+        
+        gameLoop();
     </script>
 </body>
 </html>
